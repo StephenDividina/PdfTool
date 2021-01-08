@@ -1,37 +1,34 @@
 package com.mobigator;
 
-import com.spire.pdf.PdfDocument;
-import com.spire.pdf.automaticfields.PdfCompositeField;
-import com.spire.pdf.automaticfields.PdfPageCountField;
-import com.spire.pdf.automaticfields.PdfPageNumberField;
-import com.spire.pdf.graphics.*;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
-
-import java.awt.*;
-import java.awt.geom.Dimension2D;
-import java.awt.geom.Rectangle2D;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class PdfTool {
     public static void main(String[] args) throws Exception {
-        System.out.println("Stephen");
         if (args.length > 3){
             throw new Exception("Parameter length is longer than expected. " + args.length);
         }
 
         String pdfDummy = "";
-//        pdfDummy = requestPdfFromJasper(args[0], args[2]);
-//        savePdfWithPageNumber(mergePdf(args[1], pdfDummy), args[2]);
+        pdfDummy = createPdfFromJasper(args[0], args[2]);
+        savePdfWithPageNumber(mergePdf(args[1], pdfDummy), args[2]);
 
-        pdfDummy = requestPdfFromJasper("{\"reportParams\":[{\"JRXML_BASEPATH\": \".\",\"reportName\":\"/MR4130/MR4130\",\"SUBREPORT_DIR\": \".\",\"FORM_ID\": 1}]}", "C:\\dev\\Pdf_tool");
-        savePdfWithPageNumber(mergePdf("C:\\dev\\Pdf_tool\\report.pdf", pdfDummy), "C:\\dev\\Pdf_tool");
+//        pdfDummy = createPdfFromJasper("{\"reportParams\":[{\"JRXML_BASEPATH\": \".\",\"reportName\":\"/MR4130/MR4130\",\"SUBREPORT_DIR\": \".\",\"FORM_ID\": 1}]}", "C:\\dev\\Pdf_tool");
+//        savePdfWithPageNumber(mergePdf("C:\\dev\\Pdf_tool\\report.pdf", pdfDummy), "C:\\dev\\Pdf_tool");
 
-//        savePdfWithPageNumber("C:\\dev\\PdfTool\\report.pdf", "C:\\dev\\PdfTool");
+//        savePdfWithPageNumber("C:\\dev\\Pdf_tool\\report.pdf", "C:\\dev\\Pdf_tool");
 
         try{
             File file = new File(pdfDummy);
@@ -44,30 +41,14 @@ public class PdfTool {
 
     }
 
-    private static String requestPdfFromJasper(String jsonData, String savedTargetLocation) {
+    public static String createPdfFromJasper(String jsonData, String savedTargetLocation) {
         try {
-            URL url = new URL("http://localhost:83/Jasper/jasperReports/batch");
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-
-            connection.setDoOutput(true);
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Cache-Control", "no-cache");
-            connection.setRequestProperty("Postman-Token", "<calculated when request is sent>");
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setRequestProperty("Content-Length", "<calculated when request is sent>");
-            connection.setRequestProperty("Host", "<calculated when request is sent>");
-            connection.setRequestProperty("User-Agent", "PostmanRuntime/7.26.8");
-            connection.setRequestProperty("Accept-Encoding", "gzip, deflate, br");
-            connection.setRequestProperty("Connection", "keep-alive");
-            connection.setRequestProperty("Accept", "text/html");
-
-            OutputStream os = connection.getOutputStream();
-            os.write(jsonData.getBytes());
-            os.flush();
-
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                throw new RuntimeException("Failed : HTTP error code : " + connection.getResponseCode());
+            File file = new File(savedTargetLocation);
+            if (!file.exists()){
+                file.mkdirs();
             }
+
+            HttpURLConnection connection = jasperRequest(jsonData);
 
             InputStream in = connection.getInputStream();
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -92,42 +73,34 @@ public class PdfTool {
         return savedTargetLocation + "\\dummy.pdf";
     }
 
-    private static void savePdfWithPageNumber(String pdf, String savedLocation) {
+    public static HttpURLConnection jasperRequest(String jsonData) throws IOException {
+        URL url = new URL("http://localhost:83/Jasper/jasperReports/batch");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
-        String date = new SimpleDateFormat("YYYY-MM-DD").format(new Date());
-        String time = new SimpleDateFormat("HHmmss").format(new Date());
+        connection.setDoOutput(true);
+        connection.setRequestMethod("POST");
+        connection.setRequestProperty("Cache-Control", "no-cache");
+        connection.setRequestProperty("Postman-Token", "<calculated when request is sent>");
+        connection.setRequestProperty("Content-Type", "application/json");
+        connection.setRequestProperty("Content-Length", "<calculated when request is sent>");
+        connection.setRequestProperty("Host", "<calculated when request is sent>");
+        connection.setRequestProperty("User-Agent", "PostmanRuntime/7.26.8");
+        connection.setRequestProperty("Accept-Encoding", "gzip, deflate, br");
+        connection.setRequestProperty("Connection", "keep-alive");
+        connection.setRequestProperty("Accept", "text/html");
 
-        String name = "\\report_" + date + "_T" + time + ".pdf";
+        OutputStream os = connection.getOutputStream();
+        os.write(jsonData.getBytes());
+        os.flush();
 
-        PdfDocument doc = new PdfDocument();
-        doc.loadFromFile(pdf);
-
-        PdfTrueTypeFont font = new PdfTrueTypeFont(new Font("Times New Roman", Font.PLAIN, 12));
-
-        Dimension2D pageSize = doc.getPages().get(0).getSize();
-
-        float y = (float) pageSize.getHeight() - 40;
-
-        for (int i = 0; i < doc.getPages().getCount(); i++) {
-
-            PdfPageNumberField number = new PdfPageNumberField();
-
-            PdfPageCountField count = new PdfPageCountField();
-
-            PdfCompositeField compositeField = new PdfCompositeField(font, PdfBrushes.getBlack(), "Page {0} of {1}", number, count);
-
-            compositeField.setStringFormat(new PdfStringFormat(PdfTextAlignment.Right, PdfVerticalAlignment.Top));
-
-            Dimension2D textSize = font.measureString(compositeField.getText());
-
-            compositeField.setBounds(new Rectangle2D.Float((float) pageSize.getWidth() - (float) textSize.getWidth() - 30, y, (float) textSize.getWidth(), (float) textSize.getHeight()));
-
-            compositeField.draw(doc.getPages().get(i).getCanvas());
+        if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+            throw new RuntimeException("Failed : HTTP error code : " + connection.getResponseCode());
         }
-        doc.saveToFile(savedLocation + name);
+
+        return connection;
     }
 
-    private static String mergePdf(String coverPage, String savedPDFLocation) throws IOException {
+    public static String mergePdf(String coverPage, String savedPDFLocation) throws IOException {
         PDFMergerUtility mergerUtility = new PDFMergerUtility();
         mergerUtility.addSource(coverPage);
         mergerUtility.addSource(savedPDFLocation);
@@ -136,4 +109,69 @@ public class PdfTool {
 
         return mergerUtility.getDestinationFileName();
     }
+
+    public static void savePdfWithPageNumber(String pdf, String savedLocation) throws IOException {
+
+        String date = new SimpleDateFormat("YYYY-MM-DD").format(new Date());
+        String time = new SimpleDateFormat("HHmmss").format(new Date());
+
+        String name = "\\report_" + date + "_T" + time + ".pdf";
+
+        PDDocument doc = null;
+        try
+        {
+            doc = PDDocument.load(new File(pdf));
+
+            int allPages = doc.getNumberOfPages();
+            PDFont font = PDType1Font.TIMES_ROMAN;
+            float fontSize = 15f;
+
+            for( int i=0; i<allPages; i++ )
+            {
+                PDPage page = doc.getPage(i);
+                PDRectangle pageSize = page.getMediaBox();
+                float stringWidth = font.getStringWidth(String.format("Page %d of %d", i+1, allPages))*fontSize/1000f;
+                // calculate to center of the page
+                int rotation = page.getRotation();
+                boolean rotate = rotation == 90 || rotation == 270;
+                float pageWidth = rotate ? pageSize.getHeight() : pageSize.getWidth();
+                float pageHeight = rotate ? pageSize.getWidth() : pageSize.getHeight();
+                double centeredXPosition = rotate ? pageHeight/2f : (pageWidth - stringWidth)/2f;
+                double centeredYPosition = rotate ? (pageWidth - stringWidth)/2f : pageHeight/2f;
+                // append the content to the existing stream
+                PDPageContentStream contentStream = new PDPageContentStream(doc, page, true, true,true);
+                contentStream.beginText();
+                // set font and font size
+                contentStream.setFont( font, fontSize );
+                // set text color to red
+                contentStream.setNonStrokingColor(0, 0, 0);
+                if (rotate)
+                {
+                    // rotate the text according to the page rotation
+                    contentStream.setTextRotation(Math.PI/2, centeredXPosition, centeredYPosition);
+                }
+//                else
+//                {
+//                    contentStream.setTextTranslation(centeredXPosition, centeredYPosition);
+//                }
+//                contentStream.newLineAtOffset(230, -390);
+                contentStream.newLineAtOffset(pageWidth - (stringWidth + 20),  30);
+                contentStream.drawString( String.format("Page %d of %d", i+1, allPages));
+                contentStream.endText();
+                contentStream.close();
+            }
+
+            doc.save(savedLocation + name);
+        }
+        finally
+        {
+            if( doc != null )
+            {
+                doc.close();
+            }
+        }
+    }
+
 }
+
+//{\"reportParams\":[{\"JRXML_BASEPATH\":\".\",\"reportName\":\"/MR4130/MR4130\",\"SUBREPORT_DIR\":\".\",\"FORM_ID\":1}]}
