@@ -30,6 +30,9 @@ public class PdfTool {
 
 //        savePdfWithPageNumber("C:\\dev\\Pdf_tool\\report.pdf", "C:\\dev\\Pdf_tool");
 
+//        pdfDummy = createPdfFromJasper("{\"reportParams\":[{\"JRXML_BASEPATH\":\".\",\"reportName\":\"/MR4130/MR4130\",\"SUBREPORT_DIR\":\".\",\"FORM_ID\":1}]}", "C:\\dev");
+//        savePdfWithPageNumber(mergePdf("C:\\dev\\Pdf_tool\\report2.pdf", "C:\\dev\\Pdf_tool\\report.pdf"), "C:\\dev");
+
         try{
             File file = new File(pdfDummy);
             if (file.exists()) {
@@ -102,8 +105,8 @@ public class PdfTool {
 
     public static String mergePdf(String coverPage, String savedPDFLocation) throws IOException {
         PDFMergerUtility mergerUtility = new PDFMergerUtility();
-        mergerUtility.addSource(coverPage);
         mergerUtility.addSource(savedPDFLocation);
+        mergerUtility.addSource(coverPage);
         mergerUtility.setDestinationFileName(savedPDFLocation);
         mergerUtility.mergeDocuments();
 
@@ -124,7 +127,7 @@ public class PdfTool {
 
             int allPages = doc.getNumberOfPages();
             PDFont font = PDType1Font.TIMES_ROMAN;
-            float fontSize = 15f;
+            float fontSize = 10f;
 
             for( int i=0; i<allPages; i++ )
             {
@@ -145,17 +148,17 @@ public class PdfTool {
                 contentStream.setFont( font, fontSize );
                 // set text color to red
                 contentStream.setNonStrokingColor(0, 0, 0);
-                if (rotate)
-                {
-                    // rotate the text according to the page rotation
-                    contentStream.setTextRotation(Math.PI/2, centeredXPosition, centeredYPosition);
-                }
+//                if (rotate)
+//                {
+//                    // rotate the text according to the page rotation
+//                    contentStream.setTextRotation(Math.PI/2, centeredXPosition, centeredYPosition);
+//                }
 //                else
 //                {
 //                    contentStream.setTextTranslation(centeredXPosition, centeredYPosition);
 //                }
 //                contentStream.newLineAtOffset(230, -390);
-                contentStream.newLineAtOffset(pageWidth - (stringWidth + 20),  30);
+                contentStream.newLineAtOffset(pageWidth - (stringWidth + 20),  25);
                 contentStream.drawString( String.format("Page %d of %d", i+1, allPages));
                 contentStream.endText();
                 contentStream.close();

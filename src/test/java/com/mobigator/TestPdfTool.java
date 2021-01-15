@@ -30,3 +30,4 @@ public class TestPdfTool {
         assertTrue(!file.exists());
     }
 }
+//{"reportParams":[{"JRXML_BASEPATH":".","reportName":"/CardisysReports/subreports/Cover","SUBREPORT_DIR":".","FORM_NAME":"Test","ATTACHMENT_ID":1,"CREATED_BY":"Doctor 1","ENDORESED_BY":"Doctor 2"}]}
